@@ -102,6 +102,8 @@ int main() {
                     *
                     */
 
+
+                    // As seen on https://forum.kde.org/viewtopic.php?f=74&t=94839
                     Eigen::VectorXd x_pts = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
                     Eigen::VectorXd y_pts = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
 

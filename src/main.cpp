@@ -1,13 +1,14 @@
 #include <math.h>
 #include <uWS/uWS.h>
+#include <cppad/cppad.hpp>
 #include <chrono>
 #include <iostream>
 #include <thread>
 #include <vector>
-#include "Eigen-3.3/Eigen/Core"
-//#include <Eigen/Core>
-#include "Eigen-3.3/Eigen/QR"
-//#include <Eigen/QR>
+//#include "Eigen-3.3/Eigen/Core"
+#include <Eigen/Core>
+//#include "Eigen-3.3/Eigen/QR"
+#include <Eigen/QR>
 #include "MPC.h"
 #include "json.hpp"
 
@@ -95,15 +96,27 @@ int main() {
                     double v = j[1]["speed"];
 
                     /*
-                    * TODO: Calculate steering angle and throttle using MPC.
+                    * Calculate steering angle and throttle using MPC.
                     *
                     * Both are in between [-1, 1].
                     *
                     */
 
+                    Eigen::VectorXd x_pts = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
+                    Eigen::VectorXd y_pts = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
 
-                    double steer_value;
-                    double throttle_value;
+                    std::cout << "X points: " << x_pts << std::endl;
+                    auto polynomial_coeffs = polyfit(x_pts, y_pts, 1);
+
+                    double cte = polyeval(polynomial_coeffs, px) - py;
+                    double ePsi = psi - CppAD::atan(polynomial_coeffs[1]);
+
+                    Eigen::VectorXd state(6);
+                    state << px, py, psi, v, cte, ePsi;
+                    auto vars = mpc.Solve(state, polynomial_coeffs);
+
+                    double steer_value = vars[6];
+                    double throttle_value = vars[7];
 
 
                     steer_value /= deg2rad(25);
@@ -114,8 +127,8 @@ int main() {
                     msgJson["throttle"] = throttle_value;
 
                     //Display the MPC predicted trajectory
-                    vector<double> mpc_x_vals;
-                    vector<double> mpc_y_vals;
+                    vector<double> mpc_x_vals = {vars[0]};
+                    vector<double> mpc_y_vals = {vars[1]};
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Green line
@@ -126,6 +139,8 @@ int main() {
                     //Display the waypoints/reference line
                     vector<double> next_x_vals;
                     vector<double> next_y_vals;
+                    next_x_vals = ptsx;
+                    next_y_vals = ptsy;
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Yellow line
@@ -157,8 +172,7 @@ int main() {
     });
 
     // We don't need this since we're not using HTTP but if it's removed the
-    // program
-    // doesn't compile :-(
+    // program doesn't compile :-(
     h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data,
                        size_t, size_t) {
         const std::string s = "<h1>Hello world!</h1>";

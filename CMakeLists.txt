@@ -12,8 +12,6 @@ set(CMAKE_CXX_FLAGS "${CXX_FLAGS} -g")
 set(sources src/MPC.cpp src/main.cpp)
 
 include_directories(/usr/local/include)
-include_directories(/home/andrej/Software/Ipopt/include)
-link_directories(/home/andrej/Software/Ipopt/lib)
 link_directories(/usr/local/lib)
 include_directories(src/Eigen-3.3)
 

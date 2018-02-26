@@ -2,6 +2,7 @@
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
+#include "Eigen-3.3/Eigen/QR"
 
 using CppAD::AD;
 
@@ -52,7 +53,7 @@ public:
             fg[0] += CppAD::pow(vars[v_start + t_step] - v_start, 2);
         }
 
-        // Minimize the use of actuators - more actuation equals bigger cost
+        // Minimize the use of actuators
         for (int t = 0; t < N - 1; t++) {
             fg[0] += CppAD::pow(vars[delta_start + t], 2);
             fg[0] += CppAD::pow(vars[a_start + t], 2);
@@ -71,6 +72,8 @@ public:
         fg[1 + psi_start] = vars[psi_start];
         fg[1 + delta_start] = vars[delta_start];
         fg[1 + v_start] = vars[v_start];
+        fg[1 + cte_start] = vars[cte_start];
+        fg[1 + epsi_start] = vars[epsi_start];
 
         for (int t = 1; t < N; t++) {
             // The state at time t+1.
@@ -93,8 +96,8 @@ public:
             AD<double> delta0 = vars[delta_start + t - 1];
             AD<double> a0 = vars[a_start + t - 1];
 
-            AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-            AD<double> psiDes0 = CppAD::atan(coeffs[1]);
+            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
+            AD<double> psiDes0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0 * x0);
 
             // The idea here is to constraint this value to be 0.
             // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
@@ -121,7 +124,6 @@ MPC::~MPC() {}
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     bool ok = true;
-    size_t i;
     typedef CPPAD_TESTVECTOR(double) Dvector;
 
     // Set the number of model variables (includes both states and inputs).

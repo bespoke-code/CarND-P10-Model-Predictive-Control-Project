@@ -1,14 +1,14 @@
 #include <math.h>
 #include <uWS/uWS.h>
-#include <cppad/cppad.hpp>
+//#include <cppad/cppad.hpp>
 #include <chrono>
 #include <iostream>
 #include <thread>
 #include <vector>
-//#include "Eigen-3.3/Eigen/Core"
-#include <Eigen/Core>
-//#include "Eigen-3.3/Eigen/QR"
-#include <Eigen/QR>
+#include "Eigen-3.3/Eigen/Core"
+//#include <Eigen/Core>
+#include "Eigen-3.3/Eigen/QR"
+//#include <Eigen/QR>
 #include "MPC.h"
 #include "json.hpp"
 
@@ -94,6 +94,8 @@ int main() {
                     double py = j[1]["y"];
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
+                    double delta = j[1]["steering_angle"];
+                    double a = j[1]["throttle"];
 
                     /*
                     * Calculate steering angle and throttle using MPC.

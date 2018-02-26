@@ -110,10 +110,10 @@ int main() {
                     Eigen::VectorXd y_pts = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
 
                     std::cout << "X points: " << x_pts << std::endl;
-                    auto polynomial_coeffs = polyfit(x_pts, y_pts, 1);
+                    auto polynomial_coeffs = polyfit(x_pts, y_pts, 3);
 
                     double cte = polyeval(polynomial_coeffs, px) - py;
-                    double ePsi = psi - CppAD::atan(polynomial_coeffs[1]);
+                    double ePsi = psi - atan(polynomial_coeffs[1]);
 
                     Eigen::VectorXd state(6);
                     state << px, py, psi, v, cte, ePsi;

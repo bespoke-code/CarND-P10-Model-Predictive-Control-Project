@@ -1,14 +1,11 @@
-#include <math.h>
+#include <cmath>
 #include <uWS/uWS.h>
-//#include <cppad/cppad.hpp>
 #include <chrono>
 #include <iostream>
 #include <thread>
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
-//#include <Eigen/Core>
 #include "Eigen-3.3/Eigen/QR"
-//#include <Eigen/QR>
 #include "MPC.h"
 #include "json.hpp"
 
@@ -25,7 +22,7 @@ double rad2deg(double x) { return x * 180 / pi(); }
 // else the empty string "" will be returned.
 std::string hasData(string s) {
     auto found_null = s.find("null");
-    auto b1 = s.find_first_of("[");
+    auto b1 = s.find_first_of('[');
     auto b2 = s.rfind("}]");
     if (found_null != string::npos) {
         return "";
@@ -104,29 +101,52 @@ int main() {
                     *
                     */
 
+                    // If values from ptsx or ptsy should be transferred at once,
+                    // we can use this: https://forum.kde.org/viewtopic.php?f=74&t=94839
+                    Eigen::VectorXd ptsx_local(ptsx.size());
+                    Eigen::VectorXd ptsy_local(ptsy.size());
 
-                    // As seen on https://forum.kde.org/viewtopic.php?f=74&t=94839
-                    Eigen::VectorXd x_pts = Eigen::VectorXd::Map(ptsx.data(), ptsx.size());
-                    Eigen::VectorXd y_pts = Eigen::VectorXd::Map(ptsy.data(), ptsy.size());
+                    // Transform waypoints to local (vehicle) coordinate frame.
+                    double x_local, y_local;
+                    for(int i=0; i<ptsx.size(); i++){
+                        x_local = ptsx[i]*std::cos(psi) + ptsy[i]*std::sin(psi) - px;
+                        y_local = -ptsx[i]*std::sin(psi) + ptsy[i]*std::cos(psi) - py;
+                        ptsx_local[i] = x_local;
+                        ptsy_local[i] = y_local;
+                    }
 
-                    std::cout << "X points: " << x_pts << std::endl;
-                    auto polynomial_coeffs = polyfit(x_pts, y_pts, 3);
+                    // Fit a 3rd order polynomial to the road waypoints.
+                    auto polynomial_coeffs = polyfit(ptsx_local, ptsy_local, 3);
+                    // (px,py) = (0,0) when calculating CTE in local coordinate frame.
+                    // Therefore, we don't subtract py from the CTE
+                    double cte = polyeval(polynomial_coeffs, 0);
 
-                    double cte = polyeval(polynomial_coeffs, px) - py;
-                    double ePsi = psi - atan(polynomial_coeffs[1]);
+                    // Polynomial is now fitted in local coordinates.
+                    // In local coordinates, our psi angle is 0
+                    // because the local x-axis is aligned with the vehicle's direction!
+                    double ePsi = -atan(polynomial_coeffs[1]);
 
                     Eigen::VectorXd state(6);
-                    state << px, py, psi, v, cte, ePsi;
+                    double delay = 0.1; // 100ms delay before next actuation
+                    const double Lf = 2.67; // copied over from MPC.cpp for calculation purposes only
+                    // Formulas below are simplified due to calculation in the local coordinate system.
+                    state << v * delay, // px_local = 0, cos(0) = 1
+                             0, // speed aligned with local x-axis! py_local = 0, sin(0) = 0
+                             v * (-delta/Lf) * delay, // psi_local = 0
+                             v + a * delay,
+                            cte + v * std::sin(ePsi) * delay,
+                            ePsi + v * (-delta/Lf) * delay;
+                    // run optimization solver to get next actuations
                     auto vars = mpc.Solve(state, polynomial_coeffs);
 
                     double steer_value = vars[6];
                     double throttle_value = vars[7];
 
-
-                    steer_value /= deg2rad(25);
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+                    steer_value /= deg2rad(25)*Lf;
+
                     msgJson["steering_angle"] = steer_value;
                     msgJson["throttle"] = throttle_value;
 
@@ -143,8 +163,6 @@ int main() {
                     //Display the waypoints/reference line
                     vector<double> next_x_vals;
                     vector<double> next_y_vals;
-                    next_x_vals = ptsx;
-                    next_y_vals = ptsy;
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Yellow line

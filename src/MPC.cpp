@@ -44,12 +44,10 @@ public:
         // the Solver function below.
 
         fg[0] = 0;
-        for(int t_step = 0; t_step < N; t_step++)
-        {
+        for(int t_step = 0; t_step < N; t_step++) {
             // cte(t+1) = SUM[1..N](cte(t) - cte_ref)^2 + (ePsi(t) - ePsi_ref)^2
             fg[0] += CppAD::pow(vars[cte_start + t_step], 2);
             fg[0] += CppAD::pow(vars[epsi_start + t_step], 2);
-            // add speed cost?
             fg[0] += CppAD::pow(vars[v_start + t_step] - v_start, 2);
         }
 
@@ -66,7 +64,6 @@ public:
         }
 
         // Constraints
-
         fg[1 + x_start] = vars[x_start];
         fg[1 + y_start] = vars[y_start];
         fg[1 + psi_start] = vars[psi_start];

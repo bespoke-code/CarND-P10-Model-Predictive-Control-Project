@@ -42,7 +42,7 @@ public:
         // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
         // NOTE: You'll probably go back and forth between this function and
         // the Solver function below.
-
+        std::cout << "Came before initial t_step loop!"<< std::endl;
         fg[0] = 0;
         for(int t_step = 0; t_step < N; t_step++) {
             // cte(t+1) = SUM[1..N](cte(t) - cte_ref)^2 + (ePsi(t) - ePsi_ref)^2
@@ -50,13 +50,14 @@ public:
             fg[0] += CppAD::pow(vars[epsi_start + t_step], 2);
             fg[0] += CppAD::pow(vars[v_start + t_step] - v_start, 2);
         }
-
+        std::cout << "Minimizing actuator use!"<< std::endl;
         // Minimize the use of actuators
         for (int t = 0; t < N - 1; t++) {
             fg[0] += CppAD::pow(vars[delta_start + t], 2);
             fg[0] += CppAD::pow(vars[a_start + t], 2);
         }
 
+        std::cout << "Minimizing value gap between seq actuations!"<< std::endl;
         // Minimize the value gap between sequential actuations - for smoother turns and acceleration
         for (int t = 0; t < N - 2; t++) {
             fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
@@ -145,6 +146,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     for (int i = 0; i < n_vars; i++) {
         vars[i] = 0.0;
     }
+    std::cout << "Size of vars" << vars.size() << std::endl;
 
     //vars[x_start] = x;
     //vars[y_start] = y;
@@ -200,7 +202,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // object that computes objective and constraints
     FG_eval fg_eval(coeffs);
 
-    //
     // NOTE: You don't have to worry about these options
     //
     // options for IPOPT solver

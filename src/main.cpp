@@ -115,6 +115,9 @@ int main() {
                         ptsy_local[i] = y_local;
                     }
 
+                    std::cout << "Size of PTSX_LOCAL" << ptsx_local.size() << std::endl;
+                    std::cout << "Size of PTSY_LOCAL" << ptsy_local.size() << std::endl;
+
                     // Fit a 3rd order polynomial to the road waypoints.
                     auto polynomial_coeffs = polyfit(ptsx_local, ptsy_local, 3);
                     // (px,py) = (0,0) when calculating CTE in local coordinate frame.

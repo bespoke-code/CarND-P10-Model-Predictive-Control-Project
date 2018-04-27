@@ -29,6 +29,7 @@ size_t a_start = delta_start + N - 1;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
+double speed_desired = 60;
 
 class FG_eval {
 public:
@@ -48,7 +49,7 @@ public:
             // cte(t+1) = SUM[1..N](cte(t) - cte_ref)^2 + (ePsi(t) - ePsi_ref)^2
             fg[0] += CppAD::pow(vars[cte_start + t_step], 2);
             fg[0] += CppAD::pow(vars[epsi_start + t_step], 2);
-            fg[0] += CppAD::pow(vars[v_start + t_step] - v_start, 2);
+            fg[0] += CppAD::pow(vars[v_start + t_step] - speed_desired, 2);
         }
         std::cout << "Minimizing actuator use!"<< std::endl;
         // Minimize the use of actuators
@@ -106,7 +107,7 @@ public:
             // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
             fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
             fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-            fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+            fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
             fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
             fg[1 + cte_start + t] = cte1 - ((y0 - f0) + (v0 * CppAD::sin(ePsi0) * dt));
             fg[1 + epsi_start + t] = epsi1 - ((psi0 - psiDes0) + v0 * delta0 / Lf * dt);

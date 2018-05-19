@@ -245,13 +245,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     // creates a 2 element double vector.
     vector<double> solu;
 
-    solu.push_back(solution.x[x_start + 1]);
-    solu.push_back(solution.x[y_start + 1]);
-    solu.push_back(solution.x[psi_start + 1]);
-    solu.push_back(solution.x[v_start + 1]);
-    solu.push_back(solution.x[cte_start + 1]);
-    solu.push_back(solution.x[epsi_start + 1]);
+    // It's very convenient to have the steering and throttle values first!
     solu.push_back(solution.x[delta_start]);
     solu.push_back(solution.x[a_start]);
+
+    for(int i=0; i < N; ++i) {
+        // adding predicted points' coordinates (x,y) to the solution vector
+        solu.push_back(solution.x[x_start + i]);
+        solu.push_back(solution.x[y_start + i]);
+    }
+
     return solu;
 }

@@ -70,8 +70,9 @@ int main() {
 
     // MPC is initialized here!
     MPC mpc;
+    int N = 10;
 
-    h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+    h.onMessage([&mpc, N](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                        uWS::OpCode opCode) {
         // "42" at the start of the message means there's a websocket message event.
         // The 4 signifies a websocket message
@@ -115,9 +116,6 @@ int main() {
                         ptsy_local[i] = y_local;
                     }
 
-                    std::cout << "Size of PTSX_LOCAL" << ptsx_local.size() << std::endl;
-                    std::cout << "Size of PTSY_LOCAL" << ptsy_local.size() << std::endl;
-
                     // Fit a 3rd order polynomial to the road waypoints.
                     auto polynomial_coeffs = polyfit(ptsx_local, ptsy_local, 3);
                     // (px,py) = (0,0) when calculating CTE in local coordinate frame.
@@ -142,8 +140,8 @@ int main() {
                     // run optimization solver to get next actuations
                     auto vars = mpc.Solve(state, polynomial_coeffs);
 
-                    double steer_value = vars[6];
-                    double throttle_value = vars[7];
+                    double steer_value = vars[0];
+                    double throttle_value = vars[1];
 
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -154,11 +152,16 @@ int main() {
                     msgJson["throttle"] = throttle_value;
 
                     //Display the MPC predicted trajectory
-                    vector<double> mpc_x_vals = {vars[0]};
-                    vector<double> mpc_y_vals = {vars[1]};
+                    // Starting point is the predicted one, 100ms later, in the vehicle's coordinate system
+                    vector<double> mpc_x_vals = {state[0]};
+                    vector<double> mpc_y_vals = {state[1]};
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Green line
+                    for (int i=2; i< vars.size(); ++i) {
+                        mpc_x_vals.push_back(vars[i]);
+                        mpc_y_vals.push_back(vars[i+1]);
+                    }
 
                     msgJson["mpc_x"] = mpc_x_vals;
                     msgJson["mpc_y"] = mpc_y_vals;
@@ -169,6 +172,12 @@ int main() {
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Yellow line
+                    for (int i=1; (i < N) && (i < ptsx_local.size()); ++i) {
+                        next_x_vals.push_back(ptsx_local(i));
+                    }
+                    for (int i=1; (i < N) && (i < ptsy_local.size()); ++i) {
+                        next_y_vals.push_back(ptsy_local(i));
+                    }
 
                     msgJson["next_x"] = next_x_vals;
                     msgJson["next_y"] = next_y_vals;

@@ -6,7 +6,7 @@
 
 using CppAD::AD;
 
-size_t N = 25;
+size_t N = 10;
 double dt = 0.05;
 
 size_t x_start = 0;
@@ -54,6 +54,8 @@ public:
         std::cout << "Minimizing actuator use!"<< std::endl;
         // Minimize the use of actuators
         for (int t = 0; t < N - 1; t++) {
+            std::cout<<delta_start+t<<std::endl;
+            std::cout<<a_start+t<<std::endl;
             fg[0] += CppAD::pow(vars[delta_start + t], 2);
             fg[0] += CppAD::pow(vars[a_start + t], 2);
         }
@@ -94,6 +96,7 @@ public:
             // Only consider the actuation at time t.
             AD<double> delta0 = vars[delta_start + t - 1];
             AD<double> a0 = vars[a_start + t - 1];
+
 
             AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
             AD<double> psiDes0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0 * x0);
@@ -240,8 +243,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     //
     // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
     // creates a 2 element double vector.
-    return {solution.x[x_start + 1],   solution.x[y_start + 1],
-            solution.x[psi_start + 1], solution.x[v_start + 1],
-            solution.x[cte_start + 1], solution.x[epsi_start + 1],
-            solution.x[delta_start],   solution.x[a_start]};
+    vector<double> solu;
+
+    solu.push_back(solution.x[x_start + 1]);
+    solu.push_back(solution.x[y_start + 1]);
+    solu.push_back(solution.x[psi_start + 1]);
+    solu.push_back(solution.x[v_start + 1]);
+    solu.push_back(solution.x[cte_start + 1]);
+    solu.push_back(solution.x[epsi_start + 1]);
+    solu.push_back(solution.x[delta_start]);
+    solu.push_back(solution.x[a_start]);
+    return solu;
 }

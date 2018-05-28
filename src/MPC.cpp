@@ -43,24 +43,21 @@ public:
         // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
         // NOTE: You'll probably go back and forth between this function and
         // the Solver function below.
-        std::cout << "Came before initial t_step loop!"<< std::endl;
         fg[0] = 0;
-        for(int t_step = 0; t_step < N; t_step++) {
+
+        for(int t_step = 0; t_step < N; ++t_step) {
             // cte(t+1) = SUM[1..N](cte(t) - cte_ref)^2 + (ePsi(t) - ePsi_ref)^2
             fg[0] += CppAD::pow(vars[cte_start + t_step], 2);
             fg[0] += CppAD::pow(vars[epsi_start + t_step], 2);
             fg[0] += CppAD::pow(vars[v_start + t_step] - speed_desired, 2);
         }
-        std::cout << "Minimizing actuator use!"<< std::endl;
+
         // Minimize the use of actuators
-        for (int t = 0; t < N - 1; t++) {
-            std::cout<<delta_start+t<<std::endl;
-            std::cout<<a_start+t<<std::endl;
+        for (int t = 0; t < N - 1; ++t) {
             fg[0] += CppAD::pow(vars[delta_start + t], 2);
             fg[0] += CppAD::pow(vars[a_start + t], 2);
         }
 
-        std::cout << "Minimizing value gap between seq actuations!"<< std::endl;
         // Minimize the value gap between sequential actuations - for smoother turns and acceleration
         for (int t = 0; t < N - 2; t++) {
             fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
@@ -76,7 +73,7 @@ public:
         fg[1 + cte_start] = vars[cte_start];
         fg[1 + epsi_start] = vars[epsi_start];
 
-        for (int t = 1; t < N; t++) {
+        for (int t = 1; t < N; ++t) {
             // The state at time t+1.
             AD<double> x1 = vars[x_start + t];
             AD<double> y1 = vars[y_start + t];
@@ -98,8 +95,8 @@ public:
             AD<double> a0 = vars[a_start + t - 1];
 
 
-            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * x0 * x0 + coeffs[3] * x0 * x0 * x0;
-            AD<double> psiDes0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * x0 * x0);
+            AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * CppAD::pow(x0, 2) + coeffs[3] * CppAD::pow(x0, 3);
+            AD<double> psiDes0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * CppAD::pow(x0, 2));
 
             // The idea here is to constraint this value to be 0.
             // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
@@ -150,14 +147,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     for (int i = 0; i < n_vars; i++) {
         vars[i] = 0.0;
     }
-    std::cout << "Size of vars" << vars.size() << std::endl;
 
-    //vars[x_start] = x;
-    //vars[y_start] = y;
-    //vars[psi_start] = psi;
-    //vars[v_start] = v;
-    //vars[cte_start] = cte;
-    //vars[epsi_start] = ePsi;
+    vars[x_start] = x;
+    vars[y_start] = y;
+    vars[psi_start] = psi;
+    vars[v_start] = v;
+    vars[cte_start] = cte;
+    vars[epsi_start] = ePsi;
 
     Dvector vars_lowerbound(n_vars);
     Dvector vars_upperbound(n_vars);
@@ -236,7 +232,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
     // Cost
     auto cost = solution.obj_value;
-    std::cout << "Cost " << cost << std::endl;
+    //std::cout << "Cost " << cost << std::endl;
 
     // Return the first actuator values. The variables can be accessed with
     // `solution.x[i]`.

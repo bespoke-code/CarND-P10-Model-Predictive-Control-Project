@@ -110,8 +110,8 @@ int main() {
                     // Transform waypoints to local (vehicle) coordinate frame.
                     double x_local, y_local;
                     for(int i=0; i<ptsx.size(); i++){
-                        x_local = ptsx[i]*std::cos(psi) + ptsy[i]*std::sin(psi) - px;
-                        y_local = -ptsx[i]*std::sin(psi) + ptsy[i]*std::cos(psi) - py;
+                        x_local = (ptsx[i]-px) * std::cos(-psi) + (ptsy[i]-py) * std::sin(-psi);
+                        y_local = (ptsx[i]-px) * std::sin(-psi) + (ptsy[i]-py) * std::cos(-psi);
                         ptsx_local[i] = x_local;
                         ptsy_local[i] = y_local;
                     }
@@ -153,12 +153,12 @@ int main() {
 
                     //Display the MPC predicted trajectory
                     // Starting point is the predicted one, 100ms later, in the vehicle's coordinate system
-                    vector<double> mpc_x_vals = {state[0]};
-                    vector<double> mpc_y_vals = {state[1]};
+                    vector<double> mpc_x_vals;
+                    vector<double> mpc_y_vals;
 
                     //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
                     // the points in the simulator are connected by a Green line
-                    for (int i=2; i< vars.size(); ++i) {
+                    for (int i=2; i < vars.size(); i+=2) {
                         mpc_x_vals.push_back(vars[i]);
                         mpc_y_vals.push_back(vars[i+1]);
                     }

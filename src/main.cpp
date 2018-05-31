@@ -108,12 +108,11 @@ int main() {
                     Eigen::VectorXd ptsy_local(ptsy.size());
 
                     // Transform waypoints to local (vehicle) coordinate frame.
-                    double x_local, y_local;
                     for(int i=0; i<ptsx.size(); i++){
-                        x_local = (ptsx[i]-px) * std::cos(-psi) + (ptsy[i]-py) * std::sin(-psi);
-                        y_local = (ptsx[i]-px) * std::sin(-psi) + (ptsy[i]-py) * std::cos(-psi);
-                        ptsx_local[i] = x_local;
-                        ptsy_local[i] = y_local;
+                        double px_t = ptsx[i]-px;
+                        double py_t = ptsy[i]-py;
+                        ptsx_local[i] = px_t * std::cos(-psi) - py_t * std::sin(-psi);
+                        ptsy_local[i] = px_t * std::sin(-psi) + py_t * std::cos(-psi);
                     }
 
                     // Fit a 3rd order polynomial to the road waypoints.
@@ -125,11 +124,12 @@ int main() {
                     // Polynomial is now fitted in local coordinates.
                     // In local coordinates, our psi angle is 0
                     // because the local x-axis is aligned with the vehicle's direction!
-                    double ePsi = -atan(polynomial_coeffs[1]);
+                    double ePsi = -std::atan(polynomial_coeffs[1]);
 
                     Eigen::VectorXd state(6);
-                    double delay = 0.1; // 100ms delay before next actuation
+                    const double delay = 0.1; // 100ms delay before next actuation
                     const double Lf = 2.67; // copied over from MPC.cpp for calculation purposes only
+
                     // Formulas below are simplified due to calculation in the local coordinate system.
                     state << v * delay, // px_local = 0, cos(0) = 1
                              0, // speed aligned with local x-axis! py_local = 0, sin(0) = 0

@@ -6,8 +6,9 @@
 
 using CppAD::AD;
 
-size_t N = 10;
-double dt = 0.05;
+// t = 2.5 seconds
+size_t N = 15;
+double dt = 0.166;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -29,7 +30,16 @@ size_t a_start = delta_start + N - 1;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
-double speed_desired = 60;
+const double speed_desired = 60;
+
+const double cte_weight = 15000; // MUST be centered on track
+const double epsi_weight = 10000; // MUST be in line with the road direction
+const double v_weight = 10; // SHOULD try to maintain speed constant or near constant
+const double delta_weight = 1;
+const double a_weight = 10; // SHOULD get up to speed more quickly
+const double da_weight = 50; // SHOULD try to smooth out the acceleration but be active
+const double ddelta_weight = 50; // SHOULD try to evade erratic turns but handle corners
+
 
 class FG_eval {
 public:
@@ -47,28 +57,27 @@ public:
 
         for(int t_step = 0; t_step < N; ++t_step) {
             // cte(t+1) = SUM[1..N](cte(t) - cte_ref)^2 + (ePsi(t) - ePsi_ref)^2
-            fg[0] += CppAD::pow(vars[cte_start + t_step], 2);
-            fg[0] += CppAD::pow(vars[epsi_start + t_step], 2);
-            fg[0] += CppAD::pow(vars[v_start + t_step] - speed_desired, 2);
+            fg[0] += cte_weight * CppAD::pow(vars[cte_start + t_step], 2);
+            fg[0] += epsi_weight * CppAD::pow(vars[epsi_start + t_step], 2);
+            fg[0] += v_weight * CppAD::pow(vars[v_start + t_step] - speed_desired, 2);
         }
 
         // Minimize the use of actuators
         for (int t = 0; t < N - 1; ++t) {
-            fg[0] += CppAD::pow(vars[delta_start + t], 2);
-            fg[0] += CppAD::pow(vars[a_start + t], 2);
+            fg[0] += delta_weight * CppAD::pow(vars[delta_start + t], 2);
+            fg[0] += a_weight * CppAD::pow(vars[a_start + t], 2);
         }
 
         // Minimize the value gap between sequential actuations - for smoother turns and acceleration
         for (int t = 0; t < N - 2; t++) {
-            fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-            fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+            fg[0] += ddelta_weight * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += da_weight * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
         }
 
         // Constraints
         fg[1 + x_start] = vars[x_start];
         fg[1 + y_start] = vars[y_start];
         fg[1 + psi_start] = vars[psi_start];
-        fg[1 + delta_start] = vars[delta_start];
         fg[1 + v_start] = vars[v_start];
         fg[1 + cte_start] = vars[cte_start];
         fg[1 + epsi_start] = vars[epsi_start];
@@ -148,13 +157,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
         vars[i] = 0.0;
     }
 
-    vars[x_start] = x;
-    vars[y_start] = y;
-    vars[psi_start] = psi;
-    vars[v_start] = v;
-    vars[cte_start] = cte;
-    vars[epsi_start] = ePsi;
-
     Dvector vars_lowerbound(n_vars);
     Dvector vars_upperbound(n_vars);
     // Set lower and upper limits for variables.
@@ -232,7 +234,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
     // Cost
     auto cost = solution.obj_value;
-    //std::cout << "Cost " << cost << std::endl;
+    std::cout << "Cost " << cost << std::endl;
 
     // Return the first actuator values. The variables can be accessed with
     // `solution.x[i]`.

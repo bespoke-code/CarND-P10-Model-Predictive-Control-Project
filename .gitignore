@@ -11,4 +11,5 @@ CTestTestfile.cmake
 .cproject
 .project
 .idea
-cmake-build-debug
+cmake-build-debug/
+build/

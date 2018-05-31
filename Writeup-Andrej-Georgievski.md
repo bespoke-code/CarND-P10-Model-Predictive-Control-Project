@@ -1,9 +1,4 @@
-# CarND P10 Model Predictive Control Project
-A MPC implementation to drive a model car around a track in Udacity's simulator.
-
----
-
-## Implementation details for the MPC project
+# Implementation details for the MPC project
 
 ### Model Description
 The car's state *X* consists of six parameters:
@@ -26,6 +21,8 @@ cte[t+1] = y[t] - f(x[t]) + v[t] * sin(epsi[t]) * dt
 epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
 ```
 
+where `t+1` is the next time step when the state is being reevalued/recalculated.
+
 ### Horizon (time window) discussion
 My first thought when it came to this was to do some googling and math.
 I wanted to design the controller to be able to drive smoothly at 100km/h (27,77m/s) on a curvy road -
@@ -41,6 +38,7 @@ Some of the combinations I tried:
 - N=20, dt=0.125 - much better driving, but crazy paths appear once in a while.
 Weights should be tuned...
 - N=15, dt=0.166 - with good weights this speeds up the calculations while providing a dense point set.
+
 In the end, I settled with N = 15 and dt = 0.166.
 Some weight tuning had to be done to get the best result.
 
@@ -51,12 +49,18 @@ in order to allow the optimizer to return decent results.
 
 ### Waypoints and coordinate system transformation
 A polynomial of a third degree is fitted to waypoints on the map.
-Prior to fitting, I fitted the track's waypoints (global coordinate system) presented
+Prior to fitting, I transformed the track's waypoints (global coordinate system) presented
 by the simulator to the vehicle's (local) coordinate system.
-This allows for math simplification, since the local coordinates' origin is the vehicle's center (0,0).
-
-TODO: If the student preprocesses waypoints, the vehicle state, and/or actuators prior to the MPC procedure it is described.
-
+This allows for math simplification when calculating the delayed state (in 100ms),
+since the local coordinates' origin is the vehicle's center (0,0).
+Prior to running the optimization process (MPC algorithm), apart from the waypoint transformation, the vehicle state is
+changed to reflect a 'delayed' state (100ms later) in order to provide quality inputs for navigating the car around
+the track.
 
 ### Dealing with latency
-Dealing with latency was probably both one of the most important and straight-forward problems I had to solve during my work on this project. To account for latency, I chose to predict the car's state one latency time-step ahead (e.g. 100ms in the future). I use the predicted state as a starting point for the optimization process - that way, the optimizer takes into account the state in which the car will be when the next actuation should be made, which was exactly what was necessary to ensure accurate actuations for the self-driving car.
+Dealing with latency was probably both one of the most important and straight-forward problems
+I had to solve during my work on this project. To account for latency, I chose to predict the car's state
+one latency time-step ahead (e.g. 100ms in the future). I use the predicted state as a starting point
+for the optimization process - that way, the optimizer takes into account the state in which the car
+will be when the next actuation should be made, which was exactly what was necessary to ensure accurate
+actuations for the self-driving car.
